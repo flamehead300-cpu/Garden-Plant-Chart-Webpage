@@ -1,0 +1,619 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Garden Planner: Sun, Water, Temperature & Milwaukee Timing</title>
+  <style>
+    :root {
+      --bg: #f5f7e9;
+      --panel: #ffffff;
+      --panel-soft: #f7faef;
+      --border: #dbe5c9;
+      --text: #20311c;
+      --muted: #5f7251;
+      --header: #2c5e2e;
+      --header-accent: #f9b81b;
+      --shadow: 0 12px 28px rgba(0, 20, 0, 0.08);
+    }* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 24px;
+}
+
+.container {
+  max-width: 1600px;
+  margin: 0 auto;
+  background: var(--panel);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(44, 94, 46, 0.06);
+}
+
+.header {
+  background: linear-gradient(135deg, #2c5e2e, #3f7d42);
+  color: white;
+  padding: 28px 32px 24px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.65rem, 2vw, 2.25rem);
+  line-height: 1.15;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pill-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--header-accent);
+  color: #27371f;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.sub {
+  margin-top: 10px;
+  color: rgba(255,255,255,0.9);
+  font-size: 0.96rem;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 16px;
+  padding: 20px 24px;
+  background: #fbfdf6;
+  border-bottom: 1px solid var(--border);
+}
+
+.legend-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.legend-card h2 {
+  margin: 0 0 12px;
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+.legend-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.legend-note {
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.badge, .badge-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.badge {
+  padding: 7px 11px;
+  font-size: 0.8rem;
+}
+
+.badge-sm {
+  padding: 6px 10px;
+  font-size: 0.75rem;
+}
+
+.sun-full { background: #fdebb3; color: #825506; border-color: #f0c560; }
+.sun-part { background: #e8f0e3; color: #395f2c; border-color: #a8c88d; }
+.sun-shade { background: #dcead8; color: #245323; border-color: #99c59b; }
+
+.water-high { background: #ffe2e2; color: #a11a1a; border-color: #f0a8a8; }
+.water-medium { background: #fff0db; color: #a05c0a; border-color: #f0c27f; }
+.water-low { background: #e1f4e8; color: #1f6541; border-color: #9ed0b2; }
+
+.temp-cool { background: #e2f0ff; color: #0f4b88; border-color: #9fc7ef; }
+.temp-mild { background: #e5f6f0; color: #16634a; border-color: #9fd8c1; }
+.temp-warm { background: #fff3d8; color: #8c5f00; border-color: #edcb7c; }
+.temp-hot { background: #ffe4cf; color: #9a4b00; border-color: #f0ae7a; }
+
+.stage-indoor-now { background: #efe6ff; color: #5c2ea3; border-color: #c8b1f0; }
+.stage-direct-late-apr { background: #e7f7dc; color: #336b19; border-color: #acd68f; }
+.stage-indoor-late-apr { background: #edf0ff; color: #314e9b; border-color: #b2bce8; }
+.stage-indoor-early-may { background: #fff1e0; color: #965d00; border-color: #ebc182; }
+.stage-direct-mid-may { background: #e0f5f5; color: #0e6666; border-color: #9acfcf; }
+.stage-plant-late-may { background: #ffe9ef; color: #9a294c; border-color: #e5a8bb; }
+.stage-transplant-spring { background: #eef8ea; color: #2d6b2d; border-color: #b5d7a8; }
+
+.summary-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(300px, 1fr));
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f9f6e8;
+  border-top: 1px solid #efe2b8;
+  border-bottom: 1px solid #efe2b8;
+  font-size: 0.87rem;
+  color: #5b4b26;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: white;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  min-width: min(100%, 420px);
+}
+
+.search-box input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  background: transparent;
+  color: var(--text);
+}
+
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: white;
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover { background: #f7faef; }
+
+.stats {
+  font-size: 0.86rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.table-wrapper {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eef3e2;
+  color: #294322;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 2px solid #cddfb5;
+  user-select: none;
+}
+
+thead th:hover { background: #e6eed7; }
+
+tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid #e8eddd;
+  vertical-align: middle;
+}
+
+tbody tr:nth-child(even) td {
+  background: #fcfdf8;
+}
+
+tbody tr:hover td {
+  background: #f7fbef;
+}
+
+.num {
+  width: 72px;
+  font-weight: 800;
+  color: #49663a;
+  text-align: center;
+}
+
+.plant-name {
+  min-width: 310px;
+  font-weight: 700;
+  color: #1e3818;
+}
+
+.timing-text {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 6px;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+footer {
+  background: #f3f6ec;
+  border-top: 1px solid var(--border);
+  padding: 18px 24px 22px;
+  font-size: 0.82rem;
+  color: #5a6d49;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .legend-grid,
+  .summary-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  body { padding: 12px; }
+  .header, .legend-grid, .summary-bar, .toolbar, footer { padding-left: 16px; padding-right: 16px; }
+  .search-box { min-width: 100%; }
+  .button-row { width: 100%; justify-content: space-between; }
+}
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌿 Garden Planner Reference Chart <span class="pill-count">59 plants</span></h1>
+      <div class="sub">Original 1–59 numbering preserved. Sort or filter by sunlight, water, temperature, or Milwaukee planting timing.</div>
+    </div><section class="legend-grid">
+  <div class="legend-card">
+    <h2>☀️ Sunlight</h2>
+    <div class="legend-list">
+      <span class="badge sun-full">Full sun</span>
+      <span class="badge sun-part">Full sun / part sun tolerant</span>
+      <span class="badge sun-shade">Part sun / afternoon shade helpful</span>
+    </div>
+    <div class="legend-note">Full sun generally means 6–8+ hours of direct light.</div>
+  </div>
+
+  <div class="legend-card">
+    <h2>💧 Water</h2>
+    <div class="legend-list">
+      <span class="badge water-high">High</span>
+      <span class="badge water-medium">Medium</span>
+      <span class="badge water-low">Lower</span>
+    </div>
+    <div class="legend-note">Carrots, lettuce, peas, spinach, parsnips, and radishes need especially steady moisture during germination.</div>
+  </div>
+
+  <div class="legend-card">
+    <h2>🌡️ Best growing temperature</h2>
+    <div class="legend-list">
+      <span class="badge temp-cool">50–70°F</span>
+      <span class="badge temp-mild">55–75°F</span>
+      <span class="badge temp-warm">65–85°F</span>
+      <span class="badge temp-hot">70–95°F</span>
+    </div>
+    <div class="legend-note">These are best growth ranges, not strict survival limits.</div>
+  </div>
+
+  <div class="legend-card">
+    <h2>📅 Milwaukee timing</h2>
+    <div class="legend-list">
+      <span class="badge stage-direct-late-apr">Late Apr direct sow</span>
+      <span class="badge stage-direct-mid-may">Mid-May direct sow</span>
+      <span class="badge stage-indoor-now">Start indoors now</span>
+      <span class="badge stage-plant-late-may">Plant out late May–early Jun</span>
+    </div>
+    <div class="legend-note">Timing labels are practical windows for Milwaukee / southeastern Wisconsin.</div>
+  </div>
+</section>
+
+<section class="summary-bar">
+  <div>📌 <strong>Best sun spots first:</strong> tomatoes, peppers, eggplant, okra, cucumbers, squash, pumpkins, corn, beans, basil, sunflower</div>
+  <div>💦 <strong>Highest water priority:</strong> cucurbits, corn, lettuce, spinach, brassicas, basil, artichoke, onions, peas</div>
+</section>
+
+<section class="toolbar">
+  <div class="search-box">
+    <span>🔍</span>
+    <input id="searchInput" type="text" placeholder="Filter by plant, number, sun, water, temperature, or timing" />
+  </div>
+
+  <div class="button-row">
+    <button id="resetBtn" type="button">Reset</button>
+    <div class="stats" id="stats">Showing 59 of 59 plants</div>
+  </div>
+</section>
+
+<div class="table-wrapper">
+  <table id="plantTable">
+    <thead>
+      <tr>
+        <th data-sort="id">#</th>
+        <th data-sort="name">Plant & variety</th>
+        <th data-sort="sunCat">Sunlight</th>
+        <th data-sort="waterCat">Water</th>
+        <th data-sort="tempCat">Temperature</th>
+        <th data-sort="timingOrder">Milwaukee planting timing</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+<footer>
+  Tomatoes want steady watering, while okra and sunflower become more drought-tolerant after establishment. Cool greens often appreciate afternoon shade once summer heat builds. Milwaukee timing is meant as a practical planning guide rather than a rigid exact-date rule.
+</footer>
+
+  </div>  <script>
+    const plantCatalog = [
+      { id: 1,  name: "Tomato — Red Beefsteak", sunCat: "full", waterCat: "high", tempCat: "warm", timingCat: "indoor-late-apr", timingText: "Start indoors in late April; transplant outside in late May to early June once frost risk is low.", timingOrder: 3 },
+      { id: 2,  name: "Tomato — Large Red Cherry", sunCat: "full", waterCat: "high", tempCat: "warm", timingCat: "indoor-late-apr", timingText: "Start indoors in late April; transplant outside in late May to early June once frost risk is low.", timingOrder: 3 },
+      { id: 3,  name: "Tomato — Roma VF", sunCat: "full", waterCat: "high", tempCat: "warm", timingCat: "indoor-late-apr", timingText: "Start indoors in late April; transplant outside in late May to early June once frost risk is low.", timingOrder: 3 },
+      { id: 4,  name: "Hot Pepper — Cayenne", sunCat: "full", waterCat: "medium", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; set outside in late May to early June after warm nights arrive.", timingOrder: 1 },
+      { id: 5,  name: "Hot Pepper — Jalapeño", sunCat: "full", waterCat: "medium", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; set outside in late May to early June after warm nights arrive.", timingOrder: 1 },
+      { id: 6,  name: "Sweet Bell Pepper — California Wonder", sunCat: "full", waterCat: "medium", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; set outside in late May to early June after warm nights arrive.", timingOrder: 1 },
+      { id: 7,  name: "Mild Chili Pepper — Poblano", sunCat: "full", waterCat: "medium", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; set outside in late May to early June after warm nights arrive.", timingOrder: 1 },
+      { id: 8,  name: "Pepper — Chocolate Beauty", sunCat: "full", waterCat: "medium", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; set outside in late May to early June after warm nights arrive.", timingOrder: 1 },
+      { id: 9,  name: "Pepper — Purple Beauty", sunCat: "full", waterCat: "medium", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; set outside in late May to early June after warm nights arrive.", timingOrder: 1 },
+      { id: 10, name: "Eggplant — Black Beauty", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; transplant outside in late May to early June after the weather is reliably warm.", timingOrder: 1 },
+      { id: 11, name: "Okra — Clemson Spineless 80", sunCat: "full", waterCat: "low", tempCat: "hot", timingCat: "direct-mid-may", timingText: "Direct sow in mid-May once the soil has warmed.", timingOrder: 5 },
+      { id: 12, name: "Cucumber — Marketmore 76", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 13, name: "Cucumber — Boston Pickling", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 14, name: "Yellow Squash — Golden Summer Crookneck", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 15, name: "Butternut Squash — Waltham Butternut", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 16, name: "Zucchini — Dark Green", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 17, name: "Pumpkin — Sugar Pie", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 18, name: "Pumpkin — Connecticut Field", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 },
+      { id: 19, name: "Corn — Golden X Bantam F1", sunCat: "full", waterCat: "high", tempCat: "warm", timingCat: "direct-mid-may", timingText: "Direct sow in mid-May once soil is warmer and frost danger is mostly past.", timingOrder: 5 },
+      { id: 20, name: "Sweet Corn — Country Gentleman White Open Pollinated", sunCat: "full", waterCat: "high", tempCat: "warm", timingCat: "direct-mid-may", timingText: "Direct sow in mid-May once soil is warmer and frost danger is mostly past.", timingOrder: 5 },
+      { id: 21, name: "Bean — Contender", sunCat: "full", waterCat: "medium", tempCat: "warm", timingCat: "direct-mid-may", timingText: "Direct sow in mid-May after frost danger eases and the soil has warmed.", timingOrder: 5 },
+      { id: 22, name: "Pea — Oregon Sugar Pod II", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April as soon as the soil is workable.", timingOrder: 2 },
+      { id: 23, name: "Long Day Onion — Yellow Sweet Spanish", sunCat: "full", waterCat: "high", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Sow or set out in late April.", timingOrder: 2 },
+      { id: 24, name: "Short Day Onion — Red Burgundy", sunCat: "full", waterCat: "high", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Sow or set out in late April.", timingOrder: 2 },
+      { id: 25, name: "Scallion Onion — Tokyo Long White", sunCat: "full", waterCat: "high", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 26, name: "Leek — American Flag", sunCat: "full", waterCat: "high", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Direct sow or transplant in late April.", timingOrder: 2 },
+      { id: 27, name: "Turnip — Purple Top White Globe", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 28, name: "Carrot — Imperator 58", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April and keep evenly moist during germination.", timingOrder: 2 },
+      { id: 29, name: "Carrot — Royal Chantenay", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April and keep evenly moist during germination.", timingOrder: 2 },
+      { id: 30, name: "Carrot — Scarlet Nantes", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April and keep evenly moist during germination.", timingOrder: 2 },
+      { id: 31, name: "Beet — Detroit Dark Red", sunCat: "part", waterCat: "medium", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 32, name: "Radish — Cherry Belle", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; succession sow for repeat harvests.", timingOrder: 2 },
+      { id: 33, name: "Radish — Red Arrow", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; succession sow for repeat harvests.", timingOrder: 2 },
+      { id: 34, name: "Radish — White Icicle", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; succession sow for repeat harvests.", timingOrder: 2 },
+      { id: 35, name: "Parsnips", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April and keep consistently moist while germinating.", timingOrder: 2 },
+      { id: 36, name: "Lettuce — Romaine", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; afternoon shade helps once summer heat increases.", timingOrder: 2 },
+      { id: 37, name: "Lettuce — Iceberg", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; afternoon shade helps once summer heat increases.", timingOrder: 2 },
+      { id: 38, name: "Lettuce — Buttercrunch", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; afternoon shade helps once summer heat increases.", timingOrder: 2 },
+      { id: 39, name: "Lettuce — Cimarron Red", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; afternoon shade helps once summer heat increases.", timingOrder: 2 },
+      { id: 40, name: "Mache / Corn Salad", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April in cooler conditions.", timingOrder: 2 },
+      { id: 41, name: "Swiss Chard — Ruby Red", sunCat: "part", waterCat: "medium", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 42, name: "Collard — Georgia Southern", sunCat: "part", waterCat: "medium", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Direct sow or transplant in late April.", timingOrder: 2 },
+      { id: 43, name: "Spinach — Bloomsdale Long Standing", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April and keep evenly moist.", timingOrder: 2 },
+      { id: 44, name: "Arugula — Roquette", sunCat: "shade", waterCat: "medium", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 45, name: "Endive — Curled Ruffec", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 46, name: "Cress — Curled", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 47, name: "Kale — Dwarf Siberian", sunCat: "part", waterCat: "medium", tempCat: "mild", timingCat: "direct-late-apr", timingText: "Direct sow or transplant in late April.", timingOrder: 2 },
+      { id: 48, name: "Bok Choy — Pak Choi Canton White Stem", sunCat: "shade", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April; bolts more easily in heat.", timingOrder: 2 },
+      { id: 49, name: "Broccoli — Waltham 29", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "indoor-now", timingText: "Start indoors now; transplant outdoors in late April to early May.", timingOrder: 1 },
+      { id: 50, name: "Broccoli Raab — Spring Rapini", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 51, name: "Kohlrabi — White Vienna", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April.", timingOrder: 2 },
+      { id: 52, name: "Cauliflower — Snowball Y Improved", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "indoor-now", timingText: "Start indoors now; transplant outdoors in late April to early May.", timingOrder: 1 },
+      { id: 53, name: "Cabbage — Golden Acre", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "indoor-now", timingText: "Start indoors now; transplant outdoors in late April to early May.", timingOrder: 1 },
+      { id: 54, name: "Brussels Sprouts", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "indoor-now", timingText: "Start indoors now; transplant outdoors in late April to early May.", timingOrder: 1 },
+      { id: 55, name: "Sunflower — Black Oil", sunCat: "full", waterCat: "low", tempCat: "warm", timingCat: "direct-mid-may", timingText: "Direct sow in mid-May after frost danger has mostly passed.", timingOrder: 5 },
+      { id: 56, name: "Artichoke — Green Globe", sunCat: "full", waterCat: "high", tempCat: "mild", timingCat: "indoor-now", timingText: "Start indoors now; transplant outside after hardening off in late April to early May.", timingOrder: 1 },
+      { id: 57, name: "Basil — Thai", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-now", timingText: "Start indoors now; plant outside in late May to early June after frost danger is fully past.", timingOrder: 1 },
+      { id: 58, name: "Peas — small bag", sunCat: "part", waterCat: "high", tempCat: "cool", timingCat: "direct-late-apr", timingText: "Direct sow in late April as soon as the soil is workable.", timingOrder: 2 },
+      { id: 59, name: "Pickles — small bag, assumed pickling cucumber seed", sunCat: "full", waterCat: "high", tempCat: "hot", timingCat: "indoor-early-may", timingText: "Start indoors in early May or direct sow later; plant out in late May to early June.", timingOrder: 4 }
+    ];
+
+    function getSunDisplay(cat) {
+      const map = {
+        full: { text: "Full sun", className: "sun-full" },
+        part: { text: "Full sun / part sun tolerant", className: "sun-part" },
+        shade: { text: "Part sun / appreciates shade", className: "sun-shade" }
+      };
+      return map[cat];
+    }
+
+    function getWaterDisplay(cat) {
+      const map = {
+        high: { text: "High", className: "water-high" },
+        medium: { text: "Medium", className: "water-medium" },
+        low: { text: "Lower", className: "water-low" }
+      };
+      return map[cat];
+    }
+
+    function getTempDisplay(cat) {
+      const map = {
+        cool: { text: "50–70°F", className: "temp-cool" },
+        mild: { text: "55–75°F", className: "temp-mild" },
+        warm: { text: "65–85°F", className: "temp-warm" },
+        hot: { text: "70–95°F", className: "temp-hot" }
+      };
+      return map[cat];
+    }
+
+    function getTimingDisplay(cat) {
+      const map = {
+        "indoor-now": { text: "Start indoors now", className: "stage-indoor-now" },
+        "direct-late-apr": { text: "Late Apr direct sow", className: "stage-direct-late-apr" },
+        "indoor-late-apr": { text: "Late Apr indoor start", className: "stage-indoor-late-apr" },
+        "indoor-early-may": { text: "Early May indoor start", className: "stage-indoor-early-may" },
+        "direct-mid-may": { text: "Mid-May direct sow", className: "stage-direct-mid-may" },
+        "plant-late-may": { text: "Late May plant-out", className: "stage-plant-late-may" },
+        "transplant-spring": { text: "Late Apr–early May transplant", className: "stage-transplant-spring" }
+      };
+      return map[cat];
+    }
+
+    const tableBody = document.getElementById("tableBody");
+    const stats = document.getElementById("stats");
+    const searchInput = document.getElementById("searchInput");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let currentSort = { key: "id", direction: "asc" };
+    let filterText = "";
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[m]));
+    }
+
+    function getComparableValue(plant, key) {
+      switch (key) {
+        case "id": return plant.id;
+        case "name": return plant.name.toLowerCase();
+        case "sunCat": return { full: 1, part: 2, shade: 3 }[plant.sunCat];
+        case "waterCat": return { high: 1, medium: 2, low: 3 }[plant.waterCat];
+        case "tempCat": return { cool: 1, mild: 2, warm: 3, hot: 4 }[plant.tempCat];
+        case "timingOrder": return plant.timingOrder;
+        default: return plant.id;
+      }
+    }
+
+    function getFilteredSortedData() {
+      let rows = [...plantCatalog];
+
+      if (filterText.trim()) {
+        const q = filterText.trim().toLowerCase();
+        rows = rows.filter((plant) => {
+          const sun = getSunDisplay(plant.sunCat).text.toLowerCase();
+          const water = getWaterDisplay(plant.waterCat).text.toLowerCase();
+          const temp = getTempDisplay(plant.tempCat).text.toLowerCase();
+          const timing = getTimingDisplay(plant.timingCat).text.toLowerCase();
+          return (
+            plant.id.toString().includes(q) ||
+            plant.name.toLowerCase().includes(q) ||
+            sun.includes(q) ||
+            water.includes(q) ||
+            temp.includes(q) ||
+            timing.includes(q) ||
+            plant.timingText.toLowerCase().includes(q)
+          );
+        });
+      }
+
+      rows.sort((a, b) => {
+        const av = getComparableValue(a, currentSort.key);
+        const bv = getComparableValue(b, currentSort.key);
+        if (av < bv) return currentSort.direction === "asc" ? -1 : 1;
+        if (av > bv) return currentSort.direction === "asc" ? 1 : -1;
+        return a.id - b.id;
+      });
+
+      return rows;
+    }
+
+    function render() {
+      const rows = getFilteredSortedData();
+      stats.textContent = `Showing ${rows.length} of ${plantCatalog.length} plants`;
+
+      if (!rows.length) {
+        tableBody.innerHTML = '<tr><td class="empty" colspan="6">No matches found. Try a broader filter.</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = rows.map((plant) => {
+        const sun = getSunDisplay(plant.sunCat);
+        const water = getWaterDisplay(plant.waterCat);
+        const temp = getTempDisplay(plant.tempCat);
+        const timing = getTimingDisplay(plant.timingCat);
+
+        return `
+          <tr>
+            <td class="num">${plant.id}</td>
+            <td class="plant-name">${escapeHtml(plant.name)}</td>
+            <td><span class="badge-sm ${sun.className}">${sun.text}</span></td>
+            <td><span class="badge-sm ${water.className}">${water.text}</span></td>
+            <td><span class="badge-sm ${temp.className}">${temp.text}</span></td>
+            <td>
+              <span class="badge-sm ${timing.className}">${timing.text}</span>
+              <div class="timing-text">${escapeHtml(plant.timingText)}</div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    document.querySelectorAll("th[data-sort]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.sort;
+        if (currentSort.key === key) {
+          currentSort.direction = currentSort.direction === "asc" ? "desc" : "asc";
+        } else {
+          currentSort.key = key;
+          currentSort.direction = "asc";
+        }
+        render();
+      });
+    });
+
+    searchInput.addEventListener("input", (event) => {
+      filterText = event.target.value || "";
+      render();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      filterText = "";
+      currentSort = { key: "id", direction: "asc" };
+      searchInput.value = "";
+      render();
+      searchInput.focus();
+    });
+
+    render();
+  </script></body>
+</html>
